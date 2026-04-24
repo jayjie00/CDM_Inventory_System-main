@@ -5,12 +5,7 @@ import datetime
 import mysql.connector
 
 def connect_db():
-    return mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="hello124",
-        database="inventory_db"
-    )
+    return None
 
 # Ensure we use the correct absolute path for the database file
 
@@ -39,7 +34,10 @@ def _ensure_requests_columns(cursor):
 
 def initialize_db():
     conn = connect_db()
-    cursor = conn.cursor()
+    if conn:
+        cursor = conn.cursor()
+    else:
+        return
 
     # ADMIN TABLE
     cursor.execute("""
@@ -98,7 +96,11 @@ def verify_admin(username, password):
     """Checks credentials and returns (Success, Role) for the login signal."""
     try:
         conn = connect_db()
-        cursor = conn.cursor()
+        if conn:
+            cursor = conn.cursor()
+        else:
+            return
+
         cursor.execute("SELECT role FROM admin_users WHERE username=%s AND password=%s", (username, password))
         result = cursor.fetchone()
         conn.close()
@@ -111,20 +113,35 @@ def verify_admin(username, password):
 # --- PASSWORD RECOVERY LOGIC ---
 
 def verify_security_answer(username, answer):
-    conn = connect_db(); cursor = conn.cursor()
+    conn = connect_db(); 
+    if conn:
+        cursor = conn.cursor()
+    else:
+        return
+
     cursor.execute("SELECT id FROM admin_users WHERE username=%s AND security_answer=%s", (username, answer))
     res = cursor.fetchone(); conn.close()
     return res is not None
 
 def get_user_by_email(email):
-    conn = connect_db(); cursor = conn.cursor()
+    conn = connect_db(); 
+    if conn:
+        cursor = conn.cursor()
+    else:
+        return
+
     cursor.execute("SELECT id, username FROM admin_users WHERE email = %s", (email,))
     user = cursor.fetchone(); conn.close()
     return user
 
 def store_reset_code(email, code, expiry, sent_at):
     try:
-        conn = connect_db(); cursor = conn.cursor()
+        conn = connect_db(); 
+        if conn:
+            cursor = conn.cursor()
+        else:
+            return
+
         cursor.execute("UPDATE admin_users SET reset_code=%s, reset_code_expiry=%s, reset_code_sent_at=%s WHERE email=%s", 
                        (code, expiry, sent_at, email))
         conn.commit(); conn.close(); return True
@@ -133,13 +150,23 @@ def store_reset_code(email, code, expiry, sent_at):
         return False
 
 def get_reset_code_info(email):
-    conn = connect_db(); cursor = conn.cursor()
+    conn = connect_db();
+    if conn:
+        cursor = conn.cursor()
+    else:
+        return
+
     cursor.execute("SELECT reset_code, reset_code_expiry, reset_code_sent_at FROM admin_users WHERE email=%s", (email,))
     row = cursor.fetchone(); conn.close()
     return row
 
 def verify_reset_code(email, code):
-    conn = connect_db(); cursor = conn.cursor()
+    conn = connect_db(); 
+    if conn:
+        cursor = conn.cursor()
+    else:
+        return
+
     cursor.execute("SELECT reset_code, reset_code_expiry FROM admin_users WHERE email=%s", (email,))
     row = cursor.fetchone(); conn.close()
     if not row:
@@ -155,7 +182,12 @@ def verify_reset_code(email, code):
 
 def reset_password_by_email(email, new_password):
     try:
-        conn = connect_db(); cursor = conn.cursor()
+        conn = connect_db(); 
+        if conn:
+            cursor = conn.cursor()
+        else:
+            return
+
         cursor.execute("UPDATE admin_users SET password=%s, reset_code=NULL, reset_code_expiry=NULL, reset_code_sent_at=NULL WHERE email=%s", 
                        (new_password, email))
         conn.commit(); conn.close(); return True
@@ -165,7 +197,12 @@ def reset_password_by_email(email, new_password):
 
 def reset_password(username, new_password):
     try:
-        conn = connect_db(); cursor = conn.cursor()
+        conn = connect_db(); 
+        if conn:
+            cursor = conn.cursor()
+        else:
+            return
+
         cursor.execute("UPDATE admin_users SET password=%s WHERE username=%s", (new_password, username))
         conn.commit(); conn.close(); return True
     except Exception as e:
@@ -200,7 +237,12 @@ def add_user(u, p, r, email=""):
 
 def update_admin_credentials(new_username, new_password):
     try:
-        conn = connect_db(); cursor = conn.cursor()
+        conn = connect_db(); 
+        if conn:
+            cursor = conn.cursor()
+        else:
+            return
+
         cursor.execute("UPDATE admin_users SET username = %s, password = %s WHERE id = 1", 
                        (new_username, new_password))
         conn.commit(); conn.close(); return True
@@ -209,20 +251,33 @@ def update_admin_credentials(new_username, new_password):
         return False
 
 def get_all_users():
-    conn = connect_db(); cursor = conn.cursor()
+    conn = connect_db(); 
+    if conn:
+        cursor = conn.cursor()
+    else:
+        return
     cursor.execute("SELECT id, username, role FROM admin_users")
     users = cursor.fetchall(); conn.close()
     return users
 
 def get_user_by_id(user_id):
-    conn = connect_db(); cursor = conn.cursor()
+    conn = connect_db(); 
+    if conn:
+        cursor = conn.cursor()
+    else:
+        return
     cursor.execute("SELECT id, username, password, role, email FROM admin_users WHERE id=%s", (user_id,))
     user = cursor.fetchone(); conn.close()
     return user
 
 def update_staff_credentials(user_id, username, password, email):
     try:
-        conn = connect_db(); cursor = conn.cursor()
+        conn = connect_db(); 
+        if conn:
+            cursor = conn.cursor()
+        else:
+            return
+
         cursor.execute("UPDATE admin_users SET username=%s, password=%s, email=%s WHERE id=%s", 
                        (username, password, email, user_id))
         conn.commit(); conn.close(); return True
@@ -231,7 +286,11 @@ def update_staff_credentials(user_id, username, password, email):
         return False
 
 def delete_user(user_id):
-    conn = connect_db(); cursor = conn.cursor()
+    conn = connect_db(); 
+    if conn:
+        cursor = conn.cursor()
+    else:
+        return
     cursor.execute("DELETE FROM admin_users WHERE id = %s", (user_id,))
     conn.commit(); conn.close()
 
@@ -261,7 +320,12 @@ def delete_inventory_item(item_id):
 
 def deduct_stock(item_name, quantity, prop_id="N/A"):
     """Deducts stock. If Equipment/Sound, marks specific Property ID as Borrowed."""
-    conn = connect_db(); cursor = conn.cursor()
+    conn = connect_db(); 
+    if conn:
+        cursor = conn.cursor()
+    else:
+        return
+
     if prop_id != "N/A":
         cursor.execute("""UPDATE inventory SET quantity = 0, status = 'Borrowed' 
                           WHERE item_name = %s AND property_id = %s""", (item_name, prop_id))
@@ -271,7 +335,11 @@ def deduct_stock(item_name, quantity, prop_id="N/A"):
 
 def return_item(item_name, quantity, prop_id="N/A"):
     """Restores stock. If Equipment/Sound, marks specific Property ID as Available."""
-    conn = connect_db(); cursor = conn.cursor()
+    conn = connect_db(); 
+    if conn:
+        cursor = conn.cursor()
+    else:
+        return
     if prop_id != "N/A":
         cursor.execute("""UPDATE inventory SET quantity = 1, status = 'Available' 
                           WHERE item_name = %s AND property_id = %s""", (item_name, prop_id))
@@ -283,7 +351,11 @@ def return_item(item_name, quantity, prop_id="N/A"):
 
 def get_grouped_items():
     """Returns unique item types with their total available quantity for the Kiosk grid."""
-    conn = connect_db(); cursor = conn.cursor()
+    conn = connect_db(); 
+    if conn:
+        cursor = conn.cursor()
+    else:
+        return
     # Groups by Name and Brand so identical assets appear as one card
     cursor.execute("""
         SELECT MIN(id), item_name, brand, SUM(quantity), status, category, image_path 
@@ -296,7 +368,11 @@ def get_grouped_items():
 
 def get_available_asset_id(name, brand):
     """Finds the first available individual unit's Property ID (Sticker Number)."""
-    conn = connect_db(); cursor = conn.cursor()
+    conn = connect_db(); 
+    if conn:
+        cursor = conn.cursor()
+    else:
+        return "N/A"
     cursor.execute("""
         SELECT property_id FROM inventory 
         WHERE item_name = %s AND brand = %s AND quantity > 0 
