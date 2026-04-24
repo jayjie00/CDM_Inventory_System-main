@@ -10,6 +10,7 @@ from PyQt6.QtPrintSupport import QPrinter, QPrintDialog
 from PyQt6.QtGui import QPainter, QPdfWriter, QPageLayout, QPageSize
 import sys
 import os
+import subprocess
 
 def get_pdf_folder(folder_name):
     import os
@@ -771,7 +772,6 @@ class StudentKiosk(QWidget):
         from PyQt6.QtPrintSupport import QPrinter
         from PyQt6.QtGui import QPainter
 
-        # ✅ GAMITIN NA NATIN YUNG FUNCTION MO
         pdf_folder = get_pdf_folder(folder_name)
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -782,14 +782,30 @@ class StudentKiosk(QWidget):
         printer.setOutputFileName(file_path)
 
         painter = QPainter(printer)
+
+        # 👉 IMPORTANT FIX (ITO YUNG ERROR MO)
+        widget_rect = form_widget.rect()
+        printer_rect = printer.pageRect(QPrinter.Unit.DevicePixel)
+
+        scale = min(
+            printer_rect.width() / widget_rect.width(),
+            printer_rect.height() / widget_rect.height()
+        )
+
+        painter.scale(scale, scale)
+
         form_widget.render(painter)
         painter.end()
 
         print("✅ PDF SAVED:", file_path)
 
-        # 👉 OPTIONAL: auto open
-        import os
-        os.startfile(file_path)
+        # auto open
+        if sys.platform == "win32":
+            os.startfile(file_path)
+        elif sys.platform == "darwin":
+            subprocess.call(["open", file_path])
+        else:
+            subprocess.call(["xdg-open", file_path])
 
         return file_path
     

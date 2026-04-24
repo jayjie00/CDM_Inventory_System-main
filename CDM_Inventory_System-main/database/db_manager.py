@@ -6,9 +6,9 @@ import mysql.connector
 
 def connect_db():
     return mysql.connector.connect(
-        host="192.168.100.232",
+        host="localhost",
         user="root",
-        password="cdmmainadmin2026",
+        password="hello124",
         database="inventory_db"
     )
 
