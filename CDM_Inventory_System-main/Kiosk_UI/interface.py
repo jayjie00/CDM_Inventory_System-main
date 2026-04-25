@@ -5,7 +5,8 @@ from PyQt6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, QP
                              QStackedWidget, QFrame, QGridLayout, QScrollArea, QTableWidget, 
                              QTableWidgetItem, QHeaderView, QLineEdit, QMessageBox, QComboBox, QSizePolicy)
 from PyQt6.QtGui import QFont, QPixmap, QColor
-from PyQt6.QtCore import Qt, QTimer, QDateTime, QDate  # QDate here
+# Look for your QtCore import line and add QMarginsF
+from PyQt6.QtCore import QTimer, QDateTime, Qt, QDate, QMarginsF
 from PyQt6.QtPrintSupport import QPrinter, QPrintDialog
 from PyQt6.QtGui import QPainter, QPdfWriter, QPageLayout, QPageSize
 import sys
@@ -405,6 +406,19 @@ class StudentKiosk(QWidget):
         main_lay.addWidget(help_btn, alignment=Qt.AlignmentFlag.AlignCenter)
         
         return page
+    
+    def reset_cart(self):
+        """Clears the cart and form tables without leaving the page."""
+        self.cart = {}
+        self.cart_brands = {}
+        self.update_cart_display()
+        
+        # Also clear the table so the "pc" units disappear
+        if hasattr(self, 'ris_form_widget'):
+            self.ris_form_widget.ris_table.setRowCount(0)
+        
+        self.refresh_grid()
+        print("Cart cleared manually.")
 
     def update_clock(self):
         self.clock_label.setText(QDateTime.currentDateTime().toString("MMMM dd, yyyy \n hh:mm:ss AP"))
@@ -767,45 +781,71 @@ class StudentKiosk(QWidget):
         return page
     
     def save_form_to_pdf(self, form_widget, folder_name, filename_prefix):
-        import os
         from datetime import datetime
-        from PyQt6.QtPrintSupport import QPrinter
-        from PyQt6.QtGui import QPainter
-
+        
         pdf_folder = get_pdf_folder(folder_name)
-
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         file_path = os.path.join(pdf_folder, f"{filename_prefix}_{timestamp}.pdf")
 
-        printer = QPrinter()
+        # 1. PRE-RENDER CLEANUP
+        original_size = form_widget.size()
+        
+        # We find every table (RIS table and signature tables) and hide bars
+        tables = form_widget.findChildren(QTableWidget)
+        for table in tables:
+            # Hide the bars
+            table.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+            table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+            
+            # Clear blue selection and dotted focus lines
+            table.clearSelection()
+            table.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+            
+            # Expand height to show all rows so content isn't cut off
+            total_h = table.verticalHeader().length() + table.horizontalHeader().height() + 5
+            table.setFixedHeight(total_h)
+
+        # Force the form to a standard width and wrap tightly around content
+        form_widget.setFixedWidth(900) # Slightly wider for better readability
+        form_widget.adjustSize() 
+
+        # 2. Setup Printer
+        printer = QPrinter(QPrinter.PrinterMode.HighResolution)
         printer.setOutputFormat(QPrinter.OutputFormat.PdfFormat)
         printer.setOutputFileName(file_path)
+        printer.setPageSize(QPageSize(QPageSize.PageSizeId.A4))
+        printer.setPageMargins(QMarginsF(10, 10, 10, 10))
 
+        # 3. Scaling & Painting
         painter = QPainter(printer)
-
-        # 👉 IMPORTANT FIX (ITO YUNG ERROR MO)
-        widget_rect = form_widget.rect()
-        printer_rect = printer.pageRect(QPrinter.Unit.DevicePixel)
-
-        scale = min(
-            printer_rect.width() / widget_rect.width(),
-            printer_rect.height() / widget_rect.height()
-        )
-
+        page_rect = painter.viewport()
+        
+        # Scale to fit the width of the page
+        scale = page_rect.width() / form_widget.width()
         painter.scale(scale, scale)
 
+        # 4. Render
         form_widget.render(painter)
         painter.end()
 
-        print("✅ PDF SAVED:", file_path)
+        # 5. RESTORE UI FOR KIOSK
+        form_widget.setMinimumSize(0, 0)
+        form_widget.setMaximumSize(16777215, 16777215)
+        form_widget.resize(original_size) 
+        
+        for table in tables:
+            # Turn scrollbars back on for the touchscreen
+            table.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+            table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+            table.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+            table.setMinimumHeight(300)
 
-        # auto open
-        if sys.platform == "win32":
-            os.startfile(file_path)
-        elif sys.platform == "darwin":
-            subprocess.call(["open", file_path])
-        else:
-            subprocess.call(["xdg-open", file_path])
+        # Auto-open
+        try:
+            if sys.platform == "win32": os.startfile(file_path)
+            elif sys.platform == "darwin": subprocess.call(["open", file_path])
+            else: subprocess.call(["xdg-open", file_path])
+        except: pass
 
         return file_path
     
@@ -857,14 +897,14 @@ class StudentKiosk(QWidget):
                 
     def fill_ris_form(self):
         table = self.ris_form_widget.ris_table 
-        table.setRowCount(0)
+        table.setRowCount(0) # <--- THIS IS THE FIX
         
         for name, qty in self.cart.items():
             row = table.rowCount()
             table.insertRow(row)
             
             # Smart Unit Selection
-            unit = "pc"
+            unit = ""
             if "Printing" in name or "Paper" in name: 
                 unit = "pages" 
             elif any(x in name for x in ["Printer", "Projector", "Speaker"]): 
@@ -1157,19 +1197,34 @@ class StudentKiosk(QWidget):
             QMessageBox.critical(self, "System Error", f"Something went wrong: {str(e)}")
 
     def create_waiting_screen(self):
-        page = QFrame(); page.setStyleSheet("background-color: #1B4D2E;"); lay = QVBoxLayout(page)
-        msg = QLabel("WAITING FOR VERIFICATION..."); msg.setStyleSheet("color: white; font-size: 40px; font-weight: bold;")
-        sub = QLabel("Please wait while the PSO Admin reviews your request."); sub.setStyleSheet("color: #E0E4D9; font-size: 22px;")
+        page = QFrame()
+        page.setStyleSheet("background-color: #1B4D2E;")
+        lay = QVBoxLayout(page)
         
-        self.print_ris_btn = QPushButton("PRINT RIS FORM NOW")
-        self.print_ris_btn.setFixedSize(400, 80); self.print_ris_btn.setStyleSheet("background-color: #E0E4D9; color: #1B4D2E; font-weight: bold; font-size: 20px; border-radius: 15px;")
+        msg = QLabel("SUCCESSFULLY SUBMITTED!")
+        msg.setStyleSheet("color: white; font-size: 40px; font-weight: bold;")
+        
+        self.print_ris_btn = QPushButton("PRINT FORM NOW")
+        self.print_ris_btn.setFixedSize(400, 80)
+        self.print_ris_btn.setStyleSheet("background-color: #E0E4D9; color: #1B4D2E; font-weight: bold; font-size: 20px; border-radius: 15px;")
         self.print_ris_btn.clicked.connect(self.process_ris_document)
         
-        lay.addStretch(); lay.addWidget(msg, alignment=Qt.AlignmentFlag.AlignCenter)
-        lay.addWidget(sub, alignment=Qt.AlignmentFlag.AlignCenter); lay.addSpacing(30)
-        lay.addWidget(self.print_ris_btn, alignment=Qt.AlignmentFlag.AlignCenter); lay.addStretch()
-        return page
+        # ADD THIS: A button to go back to the start for the next person
+        self.finish_btn = QPushButton("FINISH & START NEW REQUEST")
+        self.finish_btn.setFixedSize(400, 60)
+        self.finish_btn.setStyleSheet("background-color: transparent; color: white; border: 2px solid white; border-radius: 15px; font-weight: bold;")
+        self.finish_btn.clicked.connect(self.reset_to_start)
+        self.finish_btn.hide() # Hide it until they have printed
 
+        lay.addStretch()
+        lay.addWidget(msg, alignment=Qt.AlignmentFlag.AlignCenter)
+        lay.addSpacing(30)
+        lay.addWidget(self.print_ris_btn, alignment=Qt.AlignmentFlag.AlignCenter)
+        lay.addSpacing(20)
+        lay.addWidget(self.finish_btn, alignment=Qt.AlignmentFlag.AlignCenter)
+        lay.addStretch()
+        return page
+    
     def print_current_ris(self):
         # 1. Setup the Printer
         printer = QPrinter(QPrinter.PrinterMode.HighResolution)
@@ -1204,73 +1259,39 @@ class StudentKiosk(QWidget):
             self.print_ris_btn.setText("RIS PRINTED")
 
     def reset_to_start(self):
-        # 1. Clear core data
+        # 1. Clear Data Objects
         self.cart = {}
         self.cart_brands = {}
-        
-        # 2. Reset the RIS Form Widget fields
-        if hasattr(self, 'ris_form_widget'):
-            # Clear Top Info
-            self.ris_form_widget.ris_resp_center.clear()
-            self.ris_form_widget.ris_office.clear()
-            self.ris_form_widget.ris_code.clear()
-            self.ris_form_widget.ris_no.clear()
-            self.ris_form_widget.purpose_in.clear()
-            
-            # Clear Table
-            self.ris_form_widget.ris_table.setRowCount(0)
 
-            # Clear ALL Signature Grid Fields (The ones from the Grid Layout)
+        # 2. Clear RIS Form Fields
+        if hasattr(self, 'ris_form_widget'):
+            # Clear all QLineEdits in the grid
             self.ris_form_widget.ris_req_name.clear()
             self.ris_form_widget.ris_app_name.clear()
             self.ris_form_widget.ris_iss_name.clear()
             self.ris_form_widget.ris_rec_name.clear()
+            self.ris_form_widget.purpose_in.clear()
             
-            self.ris_form_widget.ris_req_date.clear()
-            self.ris_form_widget.ris_app_date.clear()
-            self.ris_form_widget.ris_iss_date.clear()
-            self.ris_form_widget.ris_rec_date.clear()
-            
-            # Reset the Main Date to Today
-            new_date = QDate.currentDate().toString("MM/dd/yyyy")
-            self.ris_form_widget.ris_date.setText(new_date)
+            # Reset table to 0 rows (Removes all "pc" units and items)
+            self.ris_form_widget.ris_table.setRowCount(0)
 
-        # 3. Reset the Borrower Form fields if they exist
+        # 3. Clear Borrower Form Fields
         if hasattr(self, 'borrow_form_widget'):
             self.borrow_form_widget.borrower_name.clear()
             self.borrow_form_widget.room_no.clear()
             self.borrow_form_widget.instructor_name.clear()
-            self.borrow_form_widget.borrower_sig.clear()
-            self.borrow_form_widget.instructor_sig.clear()
             self.borrow_form_widget.table.setRowCount(0)
 
-        # 4. Final UI Refresh
-        self.update_cart_display()
-        self.pages.setCurrentIndex(0) # Back to Welcome Screen
+        # 4. Reset the Printing Screen Button
+        self.print_ris_btn.setEnabled(True)
+        self.print_ris_btn.setText("PRINT RIS FORM NOW")
 
-
-    def reset_cart(self):
-        # 1. Clear the basic data
-        self.cart = {}
-        self.cart_brands = {}
-        self.update_cart_display()
-        self.refresh_grid()
+        # 5. UI Updates
+        self.update_cart_display() # Clears the sidebars
+        self.pages.setCurrentIndex(0) # Back to "TOUCH TO START"
         
-        # 2. Clear the Excel-style Signature Table (RIS side)
-        # We check if the table exists first to prevent crashes
-        if hasattr(self.ris_form_widget, 'sig_table'):
-            for row in range(1, 4):
-                for col in range(4):
-                    item = self.ris_form_widget.sig_table.item(row, col)
-                    if item: 
-                        item.setText("")
-
-        # 3. Clear the Borrowers Form fields too
-        if hasattr(self, 'borrow_form_widget'):
-            self.borrow_form_widget.borrower_name.clear()
-            self.borrow_form_widget.room_no.clear()
-            self.borrow_form_widget.instructor_name.clear()
-
+        print("System Auto-Reset Complete for next user.")
+        
     def show_filtered(self, category_code):
         self.current_cat = category_code
         if category_code == "Printing": self.pages.setCurrentIndex(5)
@@ -1278,31 +1299,59 @@ class StudentKiosk(QWidget):
         
     def process_ris_document(self):
         try:
-            # 👉 BORROWER FORM
-            if "BORROWER" in self.print_ris_btn.text():
-                file_path = self.save_form_to_pdf(
-                    self.borrow_form_widget,
-                    "borrower",
-                    "borrow_form"
-                )
-                QMessageBox.information(self, "Saved", f"Borrower PDF saved:\n{file_path}")
+            # Determine which widget to print
+            is_borrower = "BORROWER" in self.print_ris_btn.text()
+            target_widget = self.borrow_form_widget if is_borrower else self.ris_form_widget
+            folder = "borrower" if is_borrower else "ris"
+            prefix = "Borrower_Slip" if is_borrower else "RIS_Slip"
 
-            # 👉 RIS FORM
-            else:
-                file_path = self.save_form_to_pdf(
-                    self.ris_form_widget,
-                    "ris",
-                    "ris_form"
-                )
-                QMessageBox.information(self, "Saved", f"RIS PDF saved:\n{file_path}")
+            # --- STEP 1: FORCE DOCUMENT MODE ---
+            target_widget.setFixedWidth(850) 
+            
+            tables = target_widget.findChildren(QTableWidget)
+            for table in tables:
+                table.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+                table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+                
+                h = table.verticalHeader().length() + table.horizontalHeader().height() + 4
+                table.setFixedHeight(h)
+                
+                table.clearSelection()
+                table.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
-            # disable after print
+            target_widget.adjustSize() 
+
+            # --- STEP 2: GENERATE PDF ---
+            file_path = self.save_form_to_pdf(target_widget, folder, prefix)
+            
+            # --- STEP 3: RESTORE UI ---
+            for table in tables:
+                table.setFixedHeight(300) 
+                table.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+                table.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+
+            # Success Feedback
             self.print_ris_btn.setEnabled(False)
-            self.print_ris_btn.setText("PRINTED ✅")
-
+            self.print_ris_btn.setText("PRINTED")
+            
+            # 👉 AUTO-RESET TRIGGER
+            # Instead of showing a button, we wait 3 seconds and then call reset_to_start
+            print("PDF Generated. Auto-resetting in 3 seconds...")
+            QTimer.singleShot(3000, self.reset_to_start)
+            
         except Exception as e:
             QMessageBox.critical(self, "Error", str(e))
             
+                
+        def get_pdf_folder(folder_name):
+                # This creates a folder: CDM_Inventory_System/CDM_PDFs/ris (or borrower)
+                project_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+                base_folder = os.path.join(project_dir, "CDM_PDFs")
+                folder = os.path.join(base_folder, folder_name)
+                os.makedirs(folder, exist_ok=True)
+                return folder
+            
+        
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     k = StudentKiosk()
