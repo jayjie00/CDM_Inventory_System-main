@@ -44,13 +44,45 @@ class RISFormWidget(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(40, 40, 40, 40)
         layout.setSpacing(5) 
+        
+        
+        # --- NEW HEADER WITH LOGOS ---
+        header_container = QWidget()
+        header_layout = QHBoxLayout(header_container)
+        header_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Path logic to find your Assets folder
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        assets_dir = os.path.join(script_dir, "..", "Admin_Dashboard", "Assets")
 
-        # 1. Header Section
-        header = QLabel("COLEGIO DE MONTALBAN\nPROPERTY & SUPPLY OFFICE\nREQUISITION AND ISSUANCE SLIP")
-        header.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        header.setFont(QFont("Arial", 14, QFont.Weight.Bold))
-        layout.addWidget(header)
-        layout.addSpacing(15)
+        # Left Logo (CDM)
+        left_logo = QLabel()
+        cdm_path = os.path.join(assets_dir, "CDM.png")
+        if os.path.exists(cdm_path):
+            left_logo.setPixmap(QPixmap(cdm_path).scaled(100, 100, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+        
+        # Center Text
+        ris_title = QLabel("COLEGIO DE MONTALBAN\nPROPERTY & SUPPLY OFFICE\nREQUISITION AND ISSUANCE SLIP")
+        ris_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        ris_title.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        ris_title.setStyleSheet("color: black;")
+
+        # Right Logo (ICS)
+        right_logo = QLabel()
+        ics_path = os.path.join(assets_dir, "ICS.jpeg")
+        if os.path.exists(ics_path):
+            right_logo.setPixmap(QPixmap(ics_path).scaled(100, 100, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+
+        header_layout.addStretch(4)
+        header_layout.addWidget(left_logo)
+        header_layout.addStretch(1)
+        header_layout.addWidget(ris_title)
+        header_layout.addStretch(1)
+        header_layout.addWidget(right_logo)
+        header_layout.addStretch(4)
+
+        layout.addWidget(header_container)
+        layout.addSpacing(20)
 
         # 2. Top Info Fields
         top_grid = QGridLayout()
@@ -101,7 +133,7 @@ class RISFormWidget(QWidget):
         # 4. Purpose Line
         p_lay = QHBoxLayout()
         self.purpose_in = QLineEdit(); self.purpose_in.setStyleSheet(in_s)
-        p_lay.addWidget(QLabel("PURPOSE:", styleSheet=lbl_s))
+        p_lay.addWidget(QLabel("PURPOSE*:", styleSheet=lbl_s))
         p_lay.addWidget(self.purpose_in)
         layout.addLayout(p_lay)
         layout.addSpacing(15)
@@ -124,7 +156,7 @@ class RISFormWidget(QWidget):
             sig_container.addWidget(h_lbl, 0, col)
 
         # Printed Name Row
-        sig_container.addWidget(QLabel("Printed Name:", styleSheet=label_s), 1, 0)
+        sig_container.addWidget(QLabel("Printed Name*:", styleSheet=label_s), 1, 0)
         self.ris_req_name = QLineEdit(); self.ris_req_name.setStyleSheet(input_s)
         sig_container.addWidget(self.ris_req_name, 2, 0)
 
@@ -178,17 +210,50 @@ class BorrowersFormWidget(QWidget):
         layout.setContentsMargins(40, 40, 40, 40)
         layout.setSpacing(10)
 
-        # --- HEADER ---
-        header = QLabel("COLEGIO DE MONTALBAN\nPROPERTY AND SUPPLY OFFICE\n\nBORROWER'S FORM")
-        header.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        header.setFont(QFont("Arial", 16, QFont.Weight.Bold))
-        layout.addWidget(header)
+        # --- NEW HEADER WITH LOGOS ---
+        header_container = QWidget()
+        header_layout = QHBoxLayout(header_container)
+        header_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Path logic to find your Assets folder
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        assets_dir = os.path.join(script_dir, "..", "Admin_Dashboard", "Assets")
+
+        # 1. Left Logo (CDM)
+        left_logo = QLabel()
+        cdm_path = os.path.join(assets_dir, "CDM.png")
+        if os.path.exists(cdm_path):
+            left_logo.setPixmap(QPixmap(cdm_path).scaled(100, 100, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+        
+        # 2. Center Text (Renamed correctly and parented to header_container)
+        ris_title = QLabel("COLEGIO DE MONTALBAN\nPROPERTY & SUPPLY OFFICE\nREQUISITION AND ISSUANCE SLIP")
+        ris_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        ris_title.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        ris_title.setStyleSheet("color: black;")
+
+        # 3. Right Logo (ICS)
+        right_logo = QLabel()
+        ics_path = os.path.join(assets_dir, "ICS.jpeg")
+        if os.path.exists(ics_path):
+            right_logo.setPixmap(QPixmap(ics_path).scaled(100, 100, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+
+        # Assemble the horizontal header
+        header_layout.addStretch(4)
+        header_layout.addWidget(left_logo)
+        header_layout.addStretch(1)
+        header_layout.addWidget(ris_title) # Using the correct name here
+        header_layout.addStretch(1)
+        header_layout.addWidget(right_logo)
+        header_layout.addStretch(4)
+        
+        # Add the entire container to your main vertical layout
+        layout.addWidget(header_container)
         layout.addSpacing(20)
 
         # --- TABLE SETUP ---
         self.table = QTableWidget(10, 6)
         self.table.setHorizontalHeaderLabels([
-            "QTY.", "ITEM DESCRIPTION", "PURPOSE", 
+            "QTY.", "ITEM DESCRIPTION", "PURPOSE*", 
             "DATE/TIME\nBORROWED", "DATE/TIME\nRETURNED", "REMARKS"
         ])
         
@@ -230,13 +295,13 @@ class BorrowersFormWidget(QWidget):
         self.borrower_name = QLineEdit()
         self.room_no = QLineEdit()
         
-        row1.addWidget(QLabel("NAME OF BORROWER:", styleSheet=lbl_style))
+        row1.addWidget(QLabel("NAME OF BORROWER*:", styleSheet=lbl_style))
         row1.addWidget(self.borrower_name, 3)
         self.borrower_name.setStyleSheet(in_style)
         
         row1.addSpacing(30)
         
-        row1.addWidget(QLabel("ROOM NO:", styleSheet=lbl_style))
+        row1.addWidget(QLabel("ROOM NO*:", styleSheet=lbl_style))
         row1.addWidget(self.room_no, 1)
         self.room_no.setStyleSheet(in_style)
         footer_container.addLayout(row1)
@@ -253,7 +318,7 @@ class BorrowersFormWidget(QWidget):
         # Row 3: Instructor Name
         row3 = QHBoxLayout()
         self.instructor_name = QLineEdit()
-        row3.addWidget(QLabel("NAME OF INSTRUCTOR:", styleSheet=lbl_style))
+        row3.addWidget(QLabel("NAME OF INSTRUCTOR*:", styleSheet=lbl_style))
         row3.addWidget(self.instructor_name, 1)
         self.instructor_name.setStyleSheet(in_style)
         row3.addStretch(1)
@@ -310,7 +375,50 @@ class StudentKiosk(QWidget):
         self.pages.addWidget(self.create_borrow_form_page()) # Index 6
 
         self.main_layout.addWidget(self.pages)
+        
+        # --- ACTIVITY TIMEOUT LOGIC ---
+        self.timeout_limit = 30000  # 30 seconds in milliseconds
+        self.idle_timer = QTimer(self)
+        self.idle_timer.setSingleShot(True)
+        self.idle_timer.timeout.connect(self.reset_to_start)
+        
+        # Start the timer immediately
+        self.idle_timer.start(self.timeout_limit)
+        
+        # Install an event filter to monitor ALL touches/clicks in the app
+        QApplication.instance().installEventFilter(self)
 
+    def eventFilter(self, obj, event):
+        from PyQt6.QtCore import QEvent
+        
+        # Check for interaction events (Mouse click, move, key press, or touch)
+        # We use QEvent.Type instead of Qt.EventType
+        if event.type() in [QEvent.Type.MouseButtonPress, QEvent.Type.MouseMove, 
+                            QEvent.Type.KeyPress, QEvent.Type.TouchBegin]:
+            
+            # Reset the timer only if we are NOT on the Welcome Screen
+            if self.pages.currentIndex() != 0:
+                self.idle_timer.start(self.timeout_limit)
+            else:
+                self.idle_timer.stop()
+                
+        return super().eventFilter(obj, event)
+                
+        return super().eventFilter(obj, event)
+    def show_filtered(self, category_code):
+        self.reset_cart()
+        self.current_cat = category_code
+        # Start the idle timer as soon as they leave the categories
+        self.idle_timer.start(self.timeout_limit) 
+        
+        if category_code == "Printing": 
+            self.pages.setCurrentIndex(5)
+        else: 
+            self.refresh_grid()
+            self.pages.setCurrentIndex(2)
+            
+    
+            
     # --- SHARED UI COMPONENTS ---
     def create_top_bar(self, title_text, back_to_index):
         bar = QFrame()
@@ -325,7 +433,7 @@ class StudentKiosk(QWidget):
         if title_text == "REQUISITION & ISSUANCE SLIP":
             back_btn.clicked.connect(self.handle_back_from_ris)
         else:
-            back_btn.clicked.connect(lambda: self.pages.setCurrentIndex(back_to_index))
+            back_btn.clicked.connect(lambda: self.handle_smart_back(back_to_index))
             
         title = QLabel(title_text)
         title.setFont(QFont("Arial", 26, QFont.Weight.Bold))
@@ -337,6 +445,12 @@ class StudentKiosk(QWidget):
         layout.addStretch()
         layout.addSpacing(150)
         return bar
+    
+    def handle_smart_back(self, target_index):
+        # If going back to Category Selection (Index 1), wipe the cart
+        if target_index == 1:
+            self.reset_cart()
+        self.pages.setCurrentIndex(target_index)
 
     def handle_back_from_ris(self):
         # Allow user to go back to selection screen to modify their cart
@@ -408,17 +522,22 @@ class StudentKiosk(QWidget):
         return page
     
     def reset_cart(self):
-        """Clears the cart and form tables without leaving the page."""
+        # 1. Clear Data
         self.cart = {}
         self.cart_brands = {}
+
+        # 2. Clear UI Sidebars
         self.update_cart_display()
-        
-        # Also clear the table so the "pc" units disappear
+
+        # 3. Clear Form Tables (Prevent 'pc' or old items from staying)
         if hasattr(self, 'ris_form_widget'):
             self.ris_form_widget.ris_table.setRowCount(0)
-        
-        self.refresh_grid()
-        print("Cart cleared manually.")
+        if hasattr(self, 'borrow_form_widget'):
+            self.borrow_form_widget.table.setRowCount(0)
+            
+        # 4. Refresh Grid (Restores 'Available' counts to original)
+        if self.pages.currentIndex() == 2:
+            self.refresh_grid()
 
     def update_clock(self):
         self.clock_label.setText(QDateTime.currentDateTime().toString("MMMM dd, yyyy \n hh:mm:ss AP"))
@@ -426,10 +545,11 @@ class StudentKiosk(QWidget):
     def show_help_popup(self):
         help_text = (
             "<b>PROCESS TO GET REQUEST:</b><br><br>"
-            "1. <b>SELECT CATEGORY:</b> Choose the type of item needed (Equipment, Printing, etc.)<br>"
-            "2. <b>SELECT ITEMS:</b> Add multiple items to your cart.<br>"
-            "3. <b>FILL RIS FORM:</b> Provide your student details and purpose.<br>"
-            "4. <b>PRINT & COLLECT:</b> Collect your printed slip and proceed to the PSO counter."
+            "1. <b>SELECT CATEGORY:</b> Choose the type of item needed (Equipment, Supplies, etc.)<br>"
+            "2. <b>SELECT ITEMS:</b> Add your items to your cart.<br>"
+            "3. <b>FILL RIS FORM:</b> Provide your details and purpose.<br>"
+            "4. <b>PRINT & COLLECT:</b> Submit your Request and collect your printed slip. "
+            "5. <b>RETURNING ITEMS:</b> For borrowed items, return them on time and sign the Borrower's Form at the PSO counter."
         )
         msg = QMessageBox(self)
         msg.setWindowTitle("Kiosk Guide")
@@ -664,10 +784,12 @@ class StudentKiosk(QWidget):
         lay.addWidget(self.create_top_bar("BORROWER'S FORM", 2))
         
         scroll = QScrollArea(); scroll.setWidgetResizable(True)
+        scroll.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.borrow_form_widget = BorrowersFormWidget()
         scroll.setWidget(self.borrow_form_widget)
         
         submit_btn = QPushButton("SUBMIT BORROW REQUEST")
+    
         submit_btn.setStyleSheet("background-color: #1B4D2E; color: white; padding: 15px; font-weight: bold;")
         submit_btn.clicked.connect(self.handle_final_submit) # Uses your existing submit logic
         
@@ -848,6 +970,46 @@ class StudentKiosk(QWidget):
         except: pass
 
         return file_path
+    def save_form_to_pdf_silent(self, form_widget, folder_name, filename_prefix):
+        from datetime import datetime
+        pdf_folder = get_pdf_folder(folder_name)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        file_path = os.path.join(pdf_folder, f"{filename_prefix}_{timestamp}.pdf")
+
+        # Create PDF Printer
+        printer = QPrinter(QPrinter.PrinterMode.HighResolution)
+        printer.setOutputFormat(QPrinter.OutputFormat.PdfFormat)
+        printer.setOutputFileName(file_path)
+        printer.setPageSize(QPageSize(QPageSize.PageSizeId.A4))
+        printer.setPageMargins(QMarginsF(10, 10, 10, 10))
+
+        painter = QPainter(printer)
+        scale = painter.viewport().width() / form_widget.width()
+        painter.scale(scale, scale)
+        form_widget.render(painter)
+        painter.end()
+        
+        # We removed the 'os.startfile' logic here to keep it silent
+        return file_path
+
+    def trigger_hardware_print_silent(self, form_widget):
+        # Create Hardware Printer (Direct to Default)
+        printer = QPrinter(QPrinter.PrinterMode.HighResolution)
+        printer.setPageSize(QPageSize(QPageSize.PageSizeId.A4))
+        printer.setPageMargins(QMarginsF(10, 10, 10, 10))
+
+        painter = QPainter(printer)
+        if not painter.isActive():
+            print("Printer not ready or not found.")
+            return
+
+        # Scaling for Physical Paper (0.95 to avoid edge cut-offs)
+        page_rect = printer.pageRect(QPrinter.Unit.DevicePixel)
+        scale = (page_rect.width() * 0.95) / form_widget.width()
+        painter.scale(scale, scale)
+
+        form_widget.render(painter)
+        painter.end()
     
     def select_print_type(self, clicked_button):
         for btn in self.print_buttons:
@@ -932,7 +1094,7 @@ class StudentKiosk(QWidget):
         table_purpose = table.item(0, 2).text() if table.item(0, 2) else "Borrowing"
 
         # 4. Submit to database
-        final_purpose = f"Room: {room} | Inst: {instructor} | Purpose: {table_purpose}"
+        final_purpose = f"Room: {room} | Inst: {instructor} | Purpose : {table_purpose}"
         add_request(borrower, self.cart, final_purpose)
         
         # 5. Move to waiting screen
@@ -1003,7 +1165,7 @@ class StudentKiosk(QWidget):
             # --- TABLE SECTION (Matches columns in photo) ---
             self.table = QTableWidget(10, 6) # 10 rows for plenty of space
             self.table.setHorizontalHeaderLabels([
-                "QTY.", "ITEM\nDESCRIPTION", "PURPOSE", 
+                "QTY.", "ITEM\nDESCRIPTION", "PURPOSE*", 
                 "DATE/TIME\nBORROWED", "DATE/TIME\nRETURNED", "REMARKS"
             ])
             self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
@@ -1033,13 +1195,13 @@ class StudentKiosk(QWidget):
             lbl_style = "font-weight: bold; font-size: 13px; color: black;"
             in_style = "background: transparent; border: none; border-bottom: 1.5px solid black; color: black; padding: 2px;"
 
-            row1.addWidget(QLabel("NAME OF BORROWER:", styleSheet=lbl_style))
+            row1.addWidget(QLabel("NAME OF BORROWER*:", styleSheet=lbl_style))
             row1.addWidget(self.borrower_name, 3) # The '3' makes this box longer
             self.borrower_name.setStyleSheet(in_style)
             
             row1.addSpacing(40) # Space between name and room
             
-            row1.addWidget(QLabel("ROOM NO:", styleSheet=lbl_style))
+            row1.addWidget(QLabel("ROOM NO*:", styleSheet=lbl_style))
             row1.addWidget(self.room_no, 1) # The '1' makes this box shorter
             self.room_no.setStyleSheet(in_style)
             footer_container.addLayout(row1)
@@ -1056,7 +1218,7 @@ class StudentKiosk(QWidget):
             # Row 3: Instructor Name
             row3 = QHBoxLayout()
             self.instructor_name = QLineEdit()
-            row3.addWidget(QLabel("NAME OF INSTRUCTOR:", styleSheet=lbl_style))
+            row3.addWidget(QLabel("NAME OF INSTRUCTOR*:", styleSheet=lbl_style))
             row3.addWidget(self.instructor_name, 1)
             self.instructor_name.setStyleSheet(in_style)
             row3.addStretch(1)
@@ -1097,10 +1259,12 @@ class StudentKiosk(QWidget):
         
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
+        scroll.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.ris_form_widget = RISFormWidget() # Using the new class
         scroll.setWidget(self.ris_form_widget)
         
-        submit_btn = QPushButton("SUBMIT REQUEST  ➡")
+        submit_btn = QPushButton("SUBMIT REQUEST ")
+        
         submit_btn.setStyleSheet("background-color: #1B4D2E; color: white; padding: 15px; font-weight: bold; border-radius: 25px;")
         submit_btn.clicked.connect(self.handle_final_submit)
         
@@ -1299,57 +1463,76 @@ class StudentKiosk(QWidget):
         
     def process_ris_document(self):
         try:
-            # Determine which widget to print
+            # Determine form type
             is_borrower = "BORROWER" in self.print_ris_btn.text()
             target_widget = self.borrow_form_widget if is_borrower else self.ris_form_widget
             folder = "borrower" if is_borrower else "ris"
             prefix = "Borrower_Slip" if is_borrower else "RIS_Slip"
 
-            # --- STEP 1: FORCE DOCUMENT MODE ---
+            # --- STEP 1: PREPARE WIDGET FOR PRINTING ---
             target_widget.setFixedWidth(850) 
-            
             tables = target_widget.findChildren(QTableWidget)
             for table in tables:
                 table.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
                 table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-                
-                h = table.verticalHeader().length() + table.horizontalHeader().height() + 4
+                h = table.verticalHeader().length() + table.horizontalHeader().height() + 5
                 table.setFixedHeight(h)
-                
                 table.clearSelection()
                 table.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-
             target_widget.adjustSize() 
 
-            # --- STEP 2: GENERATE PDF ---
-            file_path = self.save_form_to_pdf(target_widget, folder, prefix)
-            
-            # --- STEP 3: RESTORE UI ---
-            for table in tables:
-                table.setFixedHeight(300) 
-                table.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-                table.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+            # --- STEP 2: DIGITAL BACKUP (SILENT) ---
+            # Use the 'silent' version so it doesn't open the PDF window
+            saved_path = self.save_form_to_pdf_silent(target_widget, folder, prefix)
 
-            # Success Feedback
-            self.print_ris_btn.setEnabled(False)
-            self.print_ris_btn.setText("PRINTED")
+            # --- STEP 3: PHYSICAL PRINT (SILENT) ---
+            self.trigger_hardware_print_silent(target_widget)
             
-            # 👉 AUTO-RESET TRIGGER
-            # Instead of showing a button, we wait 3 seconds and then call reset_to_start
-            print("PDF Generated. Auto-resetting in 3 seconds...")
+            # --- 3. THE FIX: RESTORE UI IMMEDIATELY ---
+            # This makes the form "expand" back to fill the screen
+            target_widget.setMinimumWidth(1200) # Set this to your preferred Kiosk width
+            target_widget.setMaximumWidth(16777215) # Allow it to be flexible again
+            target_widget.adjustSize()
+
+            # --- STEP 4: POP-UP NOTIFICATION ---
+            QMessageBox.information(self, "Kiosk Status", 
+                f"Document Saved Successfully!\n"
+                f"Printing started... Please collect your slip.")
+
+            # Update Button UI
+            self.print_ris_btn.setEnabled(False)
+            self.print_ris_btn.setText("PRINTED & SAVED ✅")
+            
+            # Auto-reset after a short delay
             QTimer.singleShot(3000, self.reset_to_start)
             
         except Exception as e:
-            QMessageBox.critical(self, "Error", str(e))
-            
+            QMessageBox.critical(self, "System Error", f"Action failed: {str(e)}")
+
+    def trigger_hardware_print(self, form_widget):
+        """Sends directly to the printer without saving a second file."""
+        printer = QPrinter(QPrinter.PrinterMode.HighResolution)
+        
+        # IMPORTANT: Huwag lagyan ng setOutputFileName dito 
+        # para hindi siya mag-save ulit; diretso siya sa papel.
+        printer.setPageSize(QPageSize(QPageSize.PageSizeId.A4))
+        printer.setPageMargins(QMarginsF(10, 10, 10, 10))
+
+        painter = QPainter(printer)
+        page_rect = painter.viewport()
+        scale = page_rect.width() / form_widget.width()
+        painter.scale(scale, scale)
+
+        form_widget.render(painter)
+        painter.end()
                 
-        def get_pdf_folder(folder_name):
-                # This creates a folder: CDM_Inventory_System/CDM_PDFs/ris (or borrower)
-                project_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-                base_folder = os.path.join(project_dir, "CDM_PDFs")
-                folder = os.path.join(base_folder, folder_name)
-                os.makedirs(folder, exist_ok=True)
-                return folder
+    def get_pdf_folder(folder_name):
+        # This creates a folder: CDM_Inventory_System/CDM_PDFs/ris (or borrower)
+        project_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        base_folder = os.path.join(project_dir, "CDM_PDFs")
+        folder = os.path.join(base_folder, folder_name)
+        os.makedirs(folder, exist_ok=True)
+        return folder
             
         
 if __name__ == "__main__":
